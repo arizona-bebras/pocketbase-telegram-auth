@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/tests"
 )
 
@@ -103,7 +102,7 @@ func TestPlugin_GetCollection(t *testing.T) {
 	type fields struct {
 		app        core.App
 		options    *Options
-		collection *models.Collection
+		collection *core.Collection
 	}
 	scenarios := []struct {
 		name          string
@@ -129,7 +128,7 @@ func TestPlugin_GetCollection(t *testing.T) {
 				options: &Options{
 					CollectionKey: "invalid_collection",
 				},
-				collection: &models.Collection{},
+				collection: &core.Collection{},
 			},
 			wantErr:       false,
 			collectionNil: false,
@@ -224,8 +223,8 @@ func TestPlugin_GetForm(t *testing.T) {
 
 func TestPlugin_MustRegister(t *testing.T) {
 	// setup the test ApiScenario app instance
-	setupTestApp := func(options *Options) func(*testing.T) *tests.TestApp {
-		return func(t *testing.T) *tests.TestApp {
+	setupTestApp := func(options *Options) func(testing.TB) *tests.TestApp {
+		return func(tb testing.TB) *tests.TestApp {
 			testApp, err := tests.NewTestApp(testDataDir)
 			if err != nil {
 				t.Fatalf("Cannot initialize test app: %v", err)
@@ -242,9 +241,10 @@ func TestPlugin_MustRegister(t *testing.T) {
 		{
 			Name:            "Collection not exists",
 			Method:          http.MethodPost,
-			Url:             "/api/collections/invalid_collection/auth-with-telegram",
+			URL:             "/api/collections/invalid_collection/auth-with-telegram",
 			ExpectedStatus:  404,
 			ExpectedContent: []string{`{"code":404,"message":"Collection not found.","data":{}}`},
+
 			TestAppFactory: setupTestApp(&Options{
 				CollectionKey: "invalid_collection",
 				BotToken:      "test_bot_token",
@@ -253,7 +253,7 @@ func TestPlugin_MustRegister(t *testing.T) {
 		{
 			Name:            "Collection not auth type",
 			Method:          http.MethodPost,
-			Url:             "/api/collections/not_auth_collection/auth-with-telegram",
+			URL:             "/api/collections/not_auth_collection/auth-with-telegram",
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`{"code":400,"message":"Wrong collection type. not_auth_collection should be auth collection.","data":{}}`},
 			TestAppFactory: setupTestApp(&Options{
@@ -264,7 +264,7 @@ func TestPlugin_MustRegister(t *testing.T) {
 		{
 			Name:            "Data is empty",
 			Method:          http.MethodPost,
-			Url:             "/api/collections/users/auth-with-telegram",
+			URL:             "/api/collections/users/auth-with-telegram",
 			ExpectedStatus:  400,
 			ExpectedContent: []string{`{"code":400,"message":"Failed to authenticate.","data":{"data":{"code":"validation_required","message":"Cannot be blank."}}}`},
 			TestAppFactory: setupTestApp(&Options{
@@ -275,7 +275,7 @@ func TestPlugin_MustRegister(t *testing.T) {
 		{
 			Name:   "Valid data user not exists",
 			Method: http.MethodPost,
-			Url:    "/api/collections/users/auth-with-telegram",
+			URL:    "/api/collections/users/auth-with-telegram",
 			Body: getBodyFromTgTestData(tgTestData{
 				QueryId:  "test_query_id",
 				AuthDate: 1,
