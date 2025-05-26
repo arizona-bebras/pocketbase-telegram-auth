@@ -3,7 +3,6 @@ package pocketbase_plugin_telegram_auth
 import (
 	"errors"
 	"fmt"
-
 	"github.com/iamelevich/pocketbase-plugin-telegram-auth/forms"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/apis"
@@ -140,7 +139,7 @@ func Register(app core.App, options *Options) (*Plugin, error) {
 
 						createRuleFunc := func(q *dbx.SelectQuery) error {
 							admin := c.Auth
-							
+
 							if admin != nil && admin.IsSuperuser() {
 								return nil // either admin or the rule is empty
 							}
@@ -164,7 +163,13 @@ func Register(app core.App, options *Options) (*Plugin, error) {
 							return nil
 						}
 
-						if _, err := app.FindRecordById(collection.Id, authRecord.Id, createRuleFunc); err != nil {
+						query := app.RecordQuery(collection).
+							AndWhere(dbx.In(
+								collection.Name+".id",
+								authRecord.Id,
+							))
+
+						if err := createRuleFunc(query); err != nil {
 							return fmt.Errorf("Failed create rule constraint: %w", err)
 						}
 

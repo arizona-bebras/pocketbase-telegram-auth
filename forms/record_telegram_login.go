@@ -5,18 +5,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/core"
+	pbForms "github.com/pocketbase/pocketbase/forms"
+	"github.com/pocketbase/pocketbase/tools/auth"
 	"hash"
 	"io"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
-
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/core"
-	pbForms "github.com/pocketbase/pocketbase/forms"
-	"github.com/pocketbase/pocketbase/tools/auth"
 )
 
 // RecordTelegramLogin is an auth record Telegram login form.
@@ -169,7 +168,7 @@ func (form *RecordTelegramLogin) GetAuthUserFromData() (*auth.AuthUser, error) {
 		authUser.Id = strconv.FormatInt(telegramData.Id, 10)
 		authUser.Username = telegramData.Username
 		authUser.Name = strings.TrimSpace(telegramData.FirstName + " " + telegramData.LastName)
-		authUser.AvatarUrl = telegramData.PhotoUrl
+		authUser.AvatarURL = telegramData.PhotoUrl
 
 		// Fill CreateData
 		form.CreateData["name"] = authUser.Name
@@ -178,6 +177,7 @@ func (form *RecordTelegramLogin) GetAuthUserFromData() (*auth.AuthUser, error) {
 		form.CreateData["telegram_username"] = authUser.Username
 		form.CreateData["telegram_id"] = authUser.Id
 		form.CreateData["language_code"] = telegramData.LanguageCode
+		form.CreateData["avatar_url"] = telegramData.PhotoUrl
 
 		return &authUser, nil
 	}
@@ -198,7 +198,7 @@ func (form *RecordTelegramLogin) GetAuthUserFromData() (*auth.AuthUser, error) {
 		case "language_code":
 			form.CreateData["language_code"] = v[0]
 		case "photo_url":
-			authUser.AvatarUrl = v[0]
+			authUser.AvatarURL = v[0]
 		}
 	}
 	authUser.Name = strings.TrimSpace(firstName + " " + lastName)
@@ -252,7 +252,7 @@ func (form *RecordTelegramLogin) SubmitWithTelegramData(
 	authUser.Id = strconv.FormatInt(tgData.Id, 10)
 	authUser.Username = tgData.Username
 	authUser.Name = strings.TrimSpace(tgData.FirstName + " " + tgData.LastName)
-	authUser.AvatarUrl = tgData.PhotoUrl
+	authUser.AvatarURL = tgData.PhotoUrl
 
 	// Set CreateData
 	form.CreateData = map[string]any{
@@ -294,6 +294,7 @@ func (form *RecordTelegramLogin) submitWithAuthUser(
 	saveErr := form.app.RunInTransaction(func(txApp core.App) error {
 		if authRecord == nil {
 			authRecord = core.NewRecord(form.collection)
+			authRecord.SetRandomPassword()
 			authRecord.RefreshTokenKey()
 			authRecord.MarkAsNew()
 
@@ -319,17 +320,17 @@ func (form *RecordTelegramLogin) submitWithAuthUser(
 		}
 
 		// create ExternalAuth relation if missing
-		if rel == nil {
-			rel = core.NewExternalAuth(txApp)
-			rel.SetRecordRef(authRecord.Id)
-			rel.SetCollectionRef(authRecord.Collection().Id)
-			rel.SetProvider("telegram")
-			rel.SetProviderId(authUser.Id)
-
-			if err := txApp.Save(rel); err != nil {
-				return err
-			}
-		}
+		//if rel == nil {
+		//	rel = core.NewExternalAuth(txApp)
+		//	rel.SetRecordRef(authRecord.Id)
+		//	rel.SetCollectionRef(authRecord.Collection().Id)
+		//	rel.SetProvider("telegram")
+		//	rel.SetProviderId(authUser.Id)
+		//
+		//	if err := txApp.Save(rel); err != nil {
+		//		return err
+		//	}
+		//}
 
 		return nil
 	})
